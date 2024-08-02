@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+	xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd 
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd">
+	<global-property doc:name="Global Property" doc:id="ce2b7765-538b-4599-94ff-8c553ace59fb" name="env" value="staging" />
+	<configuration-properties doc:name="Configuration properties" doc:id="83c4cf2a-e28d-4294-8575-f53b0cff28ba" file="${env}.properties" />
+    <db:config name="Database_Config" doc:name="Database Config">
+        <db:generic-connection url="${postgres.url}" driverClassName="org.postgresql.Driver" user="${postgres.username}" password="${secure::postgres.password}" />
+    </db:config>
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="97dd2dce-014a-4845-81d4-ff4984d06d21" file="${env}.properties" key="${key}"/>
+	<global-property doc:name="Global Property" doc:id="29c0bae3-8aff-45e4-8360-f9fb2c9510cd" name="key" value="jekAHJwCzx2BYhGa" />
+
+  <http:listener-config name="salesforce-system-api-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="${https.port}" protocol="HTTPS">
+			<tls:context >
+				<tls:key-store type="jks" path="${jks.path}" alias="${jks.alias}" keyPassword="${secure::jks.password}" password="${secure::jks.password}" />
+			</tls:context>
+		</http:listener-connection>
+    </http:listener-config>
+    
+    <apikit:config name="salesforce-system-api-config" api="salesforce-system-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" >
+		<apikit:flow-mappings >
+			<apikit:flow-mapping resource="/accounts" action="post" content-type="application/json" flow-ref="postAccountFlow" />
+			<apikit:flow-mapping resource="/contacts" action="post" content-type="application/json" flow-ref="postContactFlow" />
+			<apikit:flow-mapping resource="/opportunities" action="post" content-type="application/json" flow-ref="postOpportunityFlow" />
+			<apikit:flow-mapping resource="/customobject" action="post" content-type="application/json" flow-ref="postCustomObjectFlow" />
+		</apikit:flow-mappings>
+	</apikit:config>
+</mule>

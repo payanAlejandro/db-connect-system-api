@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+	xmlns:xml-module="http://www.mulesoft.org/schema/mule/xml-module"
+	xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd 
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/xml-module http://www.mulesoft.org/schema/mule/xml-module/current/mule-xml-module.xsd">
+
+    <flow name="db-connect-sapi-main">
+        <http:listener config-ref="salesforce-system-api-httpListenerConfig" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="salesforce-system-api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="salesforce-system-api-console">
+        <http:listener config-ref="salesforce-system-api-httpListenerConfig" path="/console/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="salesforce-system-api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+   </flow>
+    <flow name="postAccountFlow">
+        <logger level="INFO" doc:name="Logger" doc:id="b9a44aff-88f5-47dd-bbed-4035e4838692" message="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]"/>
+			<set-variable variableName="name" value="#[payload[0].name]" doc:name="Set Name Variable"/>
+			<set-variable variableName="billingCity" value="#[payload[0].billingCity]" doc:name="Set Billing City Variable"/>
+			<set-variable variableName="billingCountry" value="#[payload[0].billingCountry]" doc:name="Set Billing Country Variable"/>
+			<set-variable variableName="billingPostalCode" value="#[payload[0].billingPostalCode]" doc:name="Set Billing Postal Code Variable"/>
+        <db:insert config-ref="Database_Config" doc:name="Insert Data">
+            <db:sql><![CDATA[INSERT INTO Account (name, billingCity, billingCountry, billingPostalCode) VALUES (:name, :billingCity, :billingCountry, :billingPostalCode)]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	name: vars.name,
+	billingCity: vars.billingCity,
+	billingCountry: vars.billingCountry,
+	billingPostalCode: vars.billingPostalCode
+}]]]></db:input-parameters>
+        </db:insert>
+    </flow>
+
+
+
+	<flow name="postContactFlow" doc:id="5e0be251-5c40-472d-bdec-1dd69a8d8506"> 
+        <logger level="INFO" doc:name="Logger" doc:id="edaebc2e-03b7-4b09-bb33-2ef58afceced" message="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]"/>
+			<set-variable variableName="firstName" value="#[payload[0].firstName]" doc:name="Set First Name Variable"/>
+			<set-variable variableName="lastName" value="#[payload[0].lastName]" doc:name="Set Last Name Variable"/>
+			<set-variable variableName="email" value="#[payload[0].email]" doc:name="Set Email Variable"/>
+			<set-variable variableName="phone" value="#[payload[0].phone]" doc:name="Set Phone Variable"/>
+        <db:insert config-ref="Database_Config" doc:name="Insert Data">
+            <db:sql><![CDATA[INSERT INTO Contact (firstName, lastName, email, phone) VALUES (:firstName, :lastName, :email, :phone)]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	firstName: vars.firstName,
+	lastName: vars.lastName,
+	email: vars.email,
+	phone: vars.phone
+}]]]></db:input-parameters>
+        </db:insert>
+    </flow>
+
+
+	    <flow name="postOpportunityFlow" doc:id="9172d32a-d36c-4ca2-b9fb-bd76afb3ea2b" >
+        <logger level="INFO" doc:name="Logger" doc:id="b8df8893-cb05-49b3-a1cb-20dec1728156" message="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]"/>
+			<set-variable variableName="name" value="#[payload[0].name]" doc:name="Set Name Variable"/>
+		    <set-variable variableName="stage" value="#[payload[0].stage]" doc:name="Set Stage Variable"/>
+		    <set-variable variableName="amount" value="#[payload[0].amount]" doc:name="Set Amount Variable"/>
+		    <set-variable variableName="closeDate" value="#[payload[0].closeDate]" doc:name="Set Close Date Variable"/>
+        <db:insert config-ref="Database_Config" doc:name="Insert Data">
+            <db:sql><![CDATA[INSERT INTO Opportunity (name, stageName, amount, closeDate) VALUES (:name, :stage, :amount, :closeDate)]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	name: vars.name,
+	stage: vars.stage,
+	amount: vars.amount,
+	closeDate: vars.closeDate
+}]]]></db:input-parameters>
+        </db:insert>
+    </flow>
+
+	<flow name="postCustomObjectFlow" doc:id="1532c54a-75fc-4a97-8e39-05791fac70de" >
+        <logger level="INFO" doc:name="Logger" doc:id="339c7088-5eda-48e6-8ca2-e9f60558f5a7" message="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]"/>
+			<set-variable variableName="name" value="#[payload[0].name]" doc:name="Set Name Variable"/>
+		    <set-variable variableName="customField1__c" value="#[payload[0].customField1__c]" doc:name="customField1__c"/>
+		    <set-variable variableName="customField2__c" value="#[payload[0].customField2__c]" doc:name="customField2__c"/>
+        <db:insert config-ref="Database_Config" doc:name="Insert Data">
+            <db:sql><![CDATA[INSERT INTO CustomObject (name, customField1__c, customField2__c) VALUES (:name, :customField1__c, :customField2__c)]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	name: vars.name,
+	customField1__c: vars.customField1__c,
+	customField2__c: vars.customField2__c,
+}]]]></db:input-parameters>
+        </db:insert>
+    </flow>
+    </mule>
